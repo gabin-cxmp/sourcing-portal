@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Portail Fournisseurs</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="style.css" rel="stylesheet"/>
+</head>
+<body>
+    <div class="container">
+        <!-- Page de connexion -->
+        <div id="loginPage">
+            <h1>🔐 Connexion</h1>
+            <p class="subtitle">Accédez à votre espace fournisseur</p>
+            
+            <div id="message" class="message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email professionnel</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="votre@email.com"
+                        required
+                    >
+                </div>
+                
+                <button type="submit" id="submitBtn">
+                    Envoyer le lien magique
+                </button>
+            </form>
+        </div>
+
+        <!-- Page dashboard -->
+        <div id="dashboardPage" class="dashboard">
+            <h1>👋 Bienvenue !</h1>
+            <p class="subtitle">Vos informations fournisseur</p>
+            
+            <div class="user-card">
+                <div class="user-info">
+                    <strong>Email :</strong>
+                    <span id="userEmail"></span>
+                </div>
+                <div class="user-info">
+                    <strong>Nom :</strong>
+                    <span id="supplierName"></span>
+                </div>
+                <div class="user-info">
+                    <strong>ID :</strong>
+                    <span id="supplierId"></span>
+                </div>
+                <div class="user-info">
+                    <strong>Statut :</strong>
+                    <span id="supplierStatus"></span>
+                </div>
+            </div>
+
+            <button class="logout-btn" id="logoutBtn">
+                Se déconnecter
+            </button>
+        </div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
