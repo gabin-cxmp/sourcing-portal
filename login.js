@@ -26,7 +26,7 @@ loginForm.addEventListener('submit', async (e) => {
   showMessage('Envoi du lien magique...', 'info');
 
   try {
-    const res = await fetch('/functions/check-and-send-magic-link', {
+    const res = await fetch('https://ngylxcrcwqfrtefkrilt.functions.supabase.co/check-and-send-magic-link', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
