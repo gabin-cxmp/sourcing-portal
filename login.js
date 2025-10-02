@@ -20,11 +20,16 @@ loginForm.addEventListener('submit', async (e) => {
             body: { email }
         });
 
-        if (error || data.error) return;
-
-        loginForm.reset();
+        if (error) {
+            alert('Erreur technique : ' + error.message);
+        } else if (data.error) {
+            alert(data.error); 
+        } else if (data.success) {
+            alert(data.message); 
+            loginForm.reset();
+        }
     } catch {
-        // Erreurs réseau / inattendues sont gérées côté Edge Function
+        alert('Erreur inattendue. Réessayez plus tard.');
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Envoyer le lien magique';
