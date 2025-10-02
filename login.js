@@ -1,8 +1,7 @@
+// ⚠️ CONFIGURATION - Remplace avec tes vraies valeurs Supabase
 const SUPABASE_URL = 'https://ngylxcrcwqfrtefkrilt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWx4Y3Jjd3FmcnRlZmtyaWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMTYyOTIsImV4cCI6MjA3NDc5MjI5Mn0.zUj8ACrn1Uqo44at4F6memM_8mnTi7dMpQxkEJWlstc';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Elements DOM
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
 const loginForm = document.getElementById('loginForm');
@@ -10,106 +9,91 @@ const messageEl = document.getElementById('message');
 const submitBtn = document.getElementById('submitBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Affichage messages
+// Fonction pour afficher des messages
 function showMessage(text, type = 'info') {
-  messageEl.textContent = text;
-  messageEl.className = `message ${type}`;
+    messageEl.textContent = text;
+    messageEl.className = `message ${type}`;
 }
 
-// --- LOGIN FORM ---
+// Gestion de la soumission du formulaire
 loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value.trim();
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Vérification<span class="loading"></span>';
 
-  const email = document.getElementById('email').value.trim();
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = 'Vérification<span class="loading"></span>';
-  showMessage('Envoi du lien magique...', 'info');
+    try {
+        // Appelle la Edge Function pour vérifier et envoyer le magic link
+        const { data, error } = await supabase.functions.invoke('check-and-send-magic-link', {
+            body: { email }
+        });
 
-  try {
-    const res = await fetch('https://ngylxcrcwqfrtefkrilt.functions.supabase.co/check-and-send-magic-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
+        // Si erreur réseau/technique
+        if (error) {
+            showMessage('❌ Erreur technique : ' + error.message, 'error');
+            return;
+        }
 
-    let result;
-    try { result = await res.json(); } catch { result = {}; }
+        // Si erreur métier (email non autorisé, etc.)
+        if (data.error) {
+            showMessage('❌ ' + data.error, 'error');
+            return;
+        }
 
-    if (!res.ok) {
-      showMessage('❌ ' + (result.error || 'Erreur serveur'), 'error');
-    } else {
-      showMessage('✅ ' + (result.message || 'Magic link envoyé à votre adresse email !'), 'success');
-      loginForm.reset();
+        // Succès !
+        showMessage('✅ ' + data.message, 'success');
+        loginForm.reset();
+        
+    } catch (error) {
+        console.error('Erreur inattendue:', error);
+        showMessage('❌ Une erreur est survenue. Réessayez plus tard.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Envoyer le lien magique';
     }
-
-  } catch (err) {
-    console.error(err);
-    showMessage('❌ Une erreur est survenue. Réessayez plus tard.', 'error');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Envoyer le lien magique';
-  }
 });
 
-// --- CHARGER LES INFOS SUPPLIER ---
+// Fonction pour charger les données du supplier
 async function loadSupplierData(userEmail) {
-  const { data, error } = await supabase
-    .from('suppliers')
-    .select('*')
-    .eq('email', userEmail)
-    .single();
-
-  if (error) {
-    console.error('Erreur chargement supplier:', error);
-    showMessage('❌ Impossible de charger vos informations.', 'error');
-    return;
-  }
-
-  document.getElementById('userEmail').textContent = userEmail;
-  document.getElementById('supplierName').textContent = data.name || 'N/A';
-  document.getElementById('supplierId').textContent = data.id || 'N/A';
-  document.getElementById('supplierStatus').textContent = data.status || 'Actif';
+    const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('email', userEmail)
+        .single();
+    if (error) throw error;
+    document.getElementById('userEmail').textContent = userEmail;
+    document.getElementById('supplierName').textContent = data.name || 'N/A';
+    document.getElementById('supplierId').textContent = data.id || 'N/A';
+    document.getElementById('supplierStatus').textContent = data.status || 'Actif';
 }
 
-// --- CHECK SESSION AU LOAD ---
+// Vérifier la session au chargement
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session) {
-    loginPage.style.display = 'none';
-    dashboardPage.classList.add('active');
-    await loadSupplierData(session.user.email);
-  } else {
-    loginPage.style.display = 'block';
-    dashboardPage.classList.remove('active');
-  }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        loginPage.style.display = 'none';
+        dashboardPage.classList.add('active');
+        await loadSupplierData(session.user.email);
+    }
 }
 
-// --- ÉCOUTER CHANGEMENTS AUTH ---
+// Écouter les changements d'authentification
 supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    loginPage.style.display = 'none';
-    dashboardPage.classList.add('active');
-    await loadSupplierData(session.user.email);
-  } else if (event === 'SIGNED_OUT') {
-    loginPage.style.display = 'block';
-    dashboardPage.classList.remove('active');
-    showMessage('Vous êtes déconnecté.', 'info');
-  }
+    if (event === 'SIGNED_IN' && session) {
+        loginPage.style.display = 'none';
+        dashboardPage.classList.add('active');
+        await loadSupplierData(session.user.email);
+    } else if (event === 'SIGNED_OUT') {
+        loginPage.style.display = 'block';
+        dashboardPage.classList.remove('active');
+    }
 });
 
-// --- LOGOUT ---
+// Déconnexion
 logoutBtn.addEventListener('click', async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    console.error('Erreur déconnexion:', error);
-    showMessage('❌ Impossible de se déconnecter.', 'error');
-    return;
-  }
-  loginPage.style.display = 'block';
-  dashboardPage.classList.remove('active');
-  showMessage('Vous êtes déconnecté.', 'info');
+    await supabase.auth.signOut();
 });
 
-// --- INIT ---
+// Initialisation
 checkSession();
