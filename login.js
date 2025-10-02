@@ -33,9 +33,16 @@ loginForm.addEventListener('submit', async (e) => {
             body: JSON.stringify({ email })
         });
 
-        const result = await res.json();
+        let result;
+        try {
+            // Essaye de parser JSON même si status != 200
+            result = await res.json();
+        } catch {
+            result = {};
+        }
 
         if (!res.ok) {
+            // Affiche le message exact de l'Edge Function
             showMessage('❌ ' + (result.error || 'Erreur serveur'), 'error');
         } else {
             showMessage('✅ ' + (result.message || 'Magic link envoyé !'), 'success');
@@ -50,6 +57,7 @@ loginForm.addEventListener('submit', async (e) => {
         submitBtn.textContent = 'Envoyer le lien magique';
     }
 });
+
 
 // ===================== DASHBOARD =====================
 async function loadSupplierData(userEmail) {
