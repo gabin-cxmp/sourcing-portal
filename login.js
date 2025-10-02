@@ -5,15 +5,22 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
 const loginForm = document.getElementById('loginForm');
+const messageEl = document.getElementById('message');
 const submitBtn = document.getElementById('submitBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
+function showMessage(text, type = 'info') {
+    messageEl.textContent = text;
+    messageEl.className = `message ${type}`;
+}
+
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const email = document.getElementById('email').value.trim();
+
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Vérification...';
+    submitBtn.innerHTML = 'Vérification<span class="loading"></span>';
+    showMessage('Envoi du lien magique...', 'info');
 
     try {
         const { data, error } = await supabase.functions.invoke('check-and-send-magic-link', {
@@ -21,15 +28,17 @@ loginForm.addEventListener('submit', async (e) => {
         });
 
         if (error) {
-            alert('Erreur technique : ' + error.message);
+            showMessage('Erreur technique : ' + error.message, 'error');
         } else if (data.error) {
-            alert(data.error); 
+            showMessage(data.error, 'error');
         } else if (data.success) {
-            alert(data.message); 
+            showMessage(data.message, 'success');
             loginForm.reset();
         }
-    } catch {
-        alert('Erreur inattendue. Réessayez plus tard.');
+
+    } catch (err) {
+        console.error(err);
+        showMessage('Erreur inattendue. Réessayez plus tard.', 'error');
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Envoyer le lien magique';
