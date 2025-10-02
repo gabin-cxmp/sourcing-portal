@@ -23,16 +23,19 @@ loginForm.addEventListener('submit', async (e) => {
     showMessage('Envoi du lien magique...', 'info');
 
     try {
-        const { data, error } = await supabase.functions.invoke('check-and-send-magic-link', { body: { email } });
+        const res = await supabase.functions.invoke('check-and-send-magic-link', { body: { email } });
 
-        if (error) {
-            showMessage('❌ Erreur technique : ' + error.message, 'error');
-        } else if (!data.success) {
-            showMessage('❌ ' + data.error, 'error');
+        // Supabase Edge Function invoke ne renvoie pas toujours error/data comme fetch
+        const payload = res.data ?? {};
+        
+        if (!payload.success) {
+            // Message métier renvoyé par la Edge Function
+            showMessage('❌ ' + (payload.error || 'Erreur serveur'), 'error');
         } else {
-            showMessage('✅ ' + data.message, 'success');
+            showMessage('✅ ' + (payload.message || 'Magic link envoyé !'), 'success');
             loginForm.reset();
         }
+
     } catch (err) {
         console.error('Erreur inattendue:', err);
         showMessage('❌ Une erreur est survenue. Réessayez plus tard.', 'error');
