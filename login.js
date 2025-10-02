@@ -1,7 +1,9 @@
 // ⚠️ CONFIGURATION - Remplace avec tes vraies valeurs Supabase
-const SUPABASE_URL = 'https://ngylxcrcwqfrtefkrilt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWx4Y3Jjd3FmcnRlZmtyaWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMTYyOTIsImV4cCI6MjA3NDc5MjI5Mn0.zUj8ACrn1Uqo44at4F6memM_8mnTi7dMpQxkEJWlstc';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
 const loginForm = document.getElementById('loginForm');
@@ -29,21 +31,23 @@ loginForm.addEventListener('submit', async (e) => {
             body: { email }
         });
 
-        // Si erreur réseau/technique
-        if (error) {
-            showMessage('❌ Erreur technique : ' + error.message, 'error');
-            return;
-        }
-
-        // Si erreur métier (email non autorisé, etc.)
-        if (data.error) {
+        // Toujours vérifier data en premier (même en cas d'erreur HTTP)
+        if (data && data.error) {
             showMessage('❌ ' + data.error, 'error');
             return;
         }
 
+        // Si erreur réseau/technique sans data
+        if (error && !data) {
+            showMessage('❌ Erreur de connexion. Réessayez plus tard.', 'error');
+            return;
+        }
+
         // Succès !
-        showMessage('✅ ' + data.message, 'success');
-        loginForm.reset();
+        if (data && data.success) {
+            showMessage('✅ ' + data.message, 'success');
+            loginForm.reset();
+        }
         
     } catch (error) {
         console.error('Erreur inattendue:', error);
@@ -61,7 +65,9 @@ async function loadSupplierData(userEmail) {
         .select('*')
         .eq('email', userEmail)
         .single();
+
     if (error) throw error;
+
     document.getElementById('userEmail').textContent = userEmail;
     document.getElementById('supplierName').textContent = data.name || 'N/A';
     document.getElementById('supplierId').textContent = data.id || 'N/A';
@@ -71,6 +77,7 @@ async function loadSupplierData(userEmail) {
 // Vérifier la session au chargement
 async function checkSession() {
     const { data: { session } } = await supabase.auth.getSession();
+
     if (session) {
         loginPage.style.display = 'none';
         dashboardPage.classList.add('active');
