@@ -1,7 +1,7 @@
-// ⚠️ CONFIGURATION - Remplace avec tes vraies valeurs Supabase
 const SUPABASE_URL = 'https://ngylxcrcwqfrtefkrilt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5neWx4Y3Jjd3FmcnRlZmtyaWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyMTYyOTIsImV4cCI6MjA3NDc5MjI5Mn0.zUj8ACrn1Uqo44at4F6memM_8mnTi7dMpQxkEJWlstc';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const loginPage = document.getElementById('loginPage');
 const dashboardPage = document.getElementById('dashboardPage');
 const loginForm = document.getElementById('loginForm');
@@ -9,44 +9,32 @@ const messageEl = document.getElementById('message');
 const submitBtn = document.getElementById('submitBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Fonction pour afficher des messages
 function showMessage(text, type = 'info') {
     messageEl.textContent = text;
     messageEl.className = `message ${type}`;
 }
 
-// Gestion de la soumission du formulaire
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const email = document.getElementById('email').value.trim();
     submitBtn.disabled = true;
     submitBtn.innerHTML = 'Vérification<span class="loading"></span>';
+    showMessage('Envoi du lien magique...', 'info');
 
     try {
-        // Appelle la Edge Function pour vérifier et envoyer le magic link
-        const { data, error } = await supabase.functions.invoke('check-and-send-magic-link', {
-            body: { email }
-        });
+        const { data, error } = await supabase.functions.invoke('check-and-send-magic-link', { body: { email } });
 
-        // Si erreur réseau/technique
         if (error) {
             showMessage('❌ Erreur technique : ' + error.message, 'error');
-            return;
-        }
-
-        // Si erreur métier (email non autorisé, etc.)
-        if (data.error) {
+        } else if (!data.success) {
             showMessage('❌ ' + data.error, 'error');
-            return;
+        } else {
+            showMessage('✅ ' + data.message, 'success');
+            loginForm.reset();
         }
-
-        // Succès !
-        showMessage('✅ ' + data.message, 'success');
-        loginForm.reset();
-        
-    } catch (error) {
-        console.error('Erreur inattendue:', error);
+    } catch (err) {
+        console.error('Erreur inattendue:', err);
         showMessage('❌ Une erreur est survenue. Réessayez plus tard.', 'error');
     } finally {
         submitBtn.disabled = false;
@@ -54,7 +42,6 @@ loginForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Fonction pour charger les données du supplier
 async function loadSupplierData(userEmail) {
     const { data, error } = await supabase
         .from('suppliers')
@@ -62,13 +49,13 @@ async function loadSupplierData(userEmail) {
         .eq('email', userEmail)
         .single();
     if (error) throw error;
+
     document.getElementById('userEmail').textContent = userEmail;
     document.getElementById('supplierName').textContent = data.name || 'N/A';
     document.getElementById('supplierId').textContent = data.id || 'N/A';
     document.getElementById('supplierStatus').textContent = data.status || 'Actif';
 }
 
-// Vérifier la session au chargement
 async function checkSession() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
@@ -78,7 +65,6 @@ async function checkSession() {
     }
 }
 
-// Écouter les changements d'authentification
 supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
         loginPage.style.display = 'none';
@@ -90,10 +76,10 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     }
 });
 
-// Déconnexion
 logoutBtn.addEventListener('click', async () => {
     await supabase.auth.signOut();
+    loginPage.style.display = 'block';
+    dashboardPage.classList.remove('active');
 });
 
-// Initialisation
 checkSession();
